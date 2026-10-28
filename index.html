@@ -207,34 +207,34 @@
                         <!-- CCS Combo 1 -->
                         <div onclick="selectConnector(this, 'CCS Plug 1 (DC Fast)')" class="connector-card glass-card border-2 border-brand-cyan/80 bg-brand-cyan/10 rounded-2xl p-5 cursor-pointer hover:border-brand-cyan transition relative group">
                             <div class="check-icon absolute top-3 right-3 text-brand-cyan text-xl"><i class="fa-solid fa-circle-check"></i></div>
-                            <div class="w-12 h-12 rounded-xl bg-brand-cyan/20 text-brand-cyan flex items-center justify-center text-2xl mb-3">
+                            <div class="icon-wrapper w-12 h-12 rounded-xl bg-brand-cyan/20 text-brand-cyan flex items-center justify-center text-2xl mb-3">
                                 <i class="fa-solid fa-plug-circle-bolt"></i>
                             </div>
-                            <div class="font-bold text-white text-base">CCS Combo 1</div>
-                            <div class="text-xs text-brand-cyan font-mono mt-1">Up to 150 kW DC</div>
-                            <div class="text-xs text-slate-400 mt-2">Ultra-Fast Charging • $0.35/kWh</div>
+                            <div class="card-title font-bold text-white text-base">CCS Combo 1</div>
+                            <div class="card-sub text-xs text-brand-cyan font-mono mt-1">Up to 150 kW DC</div>
+                            <div class="card-desc text-xs text-brand-cyan mt-2">Ultra-Fast Charging • $0.35/kWh</div>
                         </div>
 
                         <!-- Type 2 AC -->
                         <div onclick="selectConnector(this, 'Type 2 AC (Standard)')" class="connector-card glass-card border-2 border-brand-border rounded-2xl p-5 cursor-pointer hover:border-brand-cyan transition relative group">
                             <div class="check-icon absolute top-3 right-3 text-brand-cyan text-xl hidden"><i class="fa-solid fa-circle-check"></i></div>
-                            <div class="w-12 h-12 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-2xl mb-3">
+                            <div class="icon-wrapper w-12 h-12 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-2xl mb-3">
                                 <i class="fa-solid fa-plug"></i>
                             </div>
-                            <div class="font-bold text-white text-base">Type 2 AC</div>
-                            <div class="text-xs text-slate-400 font-mono mt-1">Up to 22 kW AC</div>
-                            <div class="text-xs text-slate-400 mt-2">Standard Speed • $0.22/kWh</div>
+                            <div class="card-title font-bold text-slate-400 text-base">Type 2 AC</div>
+                            <div class="card-sub text-xs text-slate-400 font-mono mt-1">Up to 22 kW AC</div>
+                            <div class="card-desc text-xs text-slate-400 mt-2">Standard Speed • $0.22/kWh</div>
                         </div>
 
                         <!-- CHAdeMO -->
                         <div onclick="selectConnector(this, 'CHAdeMO (DC)')" class="connector-card glass-card border-2 border-brand-border rounded-2xl p-5 cursor-pointer hover:border-brand-cyan transition relative group">
                             <div class="check-icon absolute top-3 right-3 text-brand-cyan text-xl hidden"><i class="fa-solid fa-circle-check"></i></div>
-                            <div class="w-12 h-12 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-2xl mb-3">
+                            <div class="icon-wrapper w-12 h-12 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-2xl mb-3">
                                 <i class="fa-solid fa-car-battery"></i>
                             </div>
-                            <div class="font-bold text-white text-base">CHAdeMO</div>
-                            <div class="text-xs text-slate-400 font-mono mt-1">Up to 60 kW DC</div>
-                            <div class="text-xs text-slate-400 mt-2">Fast Charge • $0.30/kWh</div>
+                            <div class="card-title font-bold text-slate-400 text-base">CHAdeMO</div>
+                            <div class="card-sub text-xs text-slate-400 font-mono mt-1">Up to 60 kW DC</div>
+                            <div class="card-desc text-xs text-slate-400 mt-2">Fast Charge • $0.30/kWh</div>
                         </div>
                     </div>
 
@@ -585,25 +585,81 @@
 
         // Scenario 1 Logic (Jack)
         function selectConnector(element, plugName) {
-            // Reset all connector cards
+            // Reset all connector cards to inactive/gray state
             document.querySelectorAll('.connector-card').forEach(card => {
                 card.classList.remove('border-brand-cyan/80', 'bg-brand-cyan/10');
                 card.classList.add('border-brand-border');
                 
-                // Hide checkmark icon on unselected cards
+                // Hide checkmark icon
                 const checkIcon = card.querySelector('.check-icon');
                 if (checkIcon) checkIcon.classList.add('hidden');
+
+                // Reset icon background & text color to slate
+                const iconWrapper = card.querySelector('.icon-wrapper');
+                if (iconWrapper) {
+                    iconWrapper.classList.remove('bg-brand-cyan/20', 'text-brand-cyan');
+                    iconWrapper.classList.add('bg-slate-800', 'text-slate-400');
+                }
+
+                // Reset title text to gray
+                const cardTitle = card.querySelector('.card-title');
+                if (cardTitle) {
+                    cardTitle.classList.remove('text-white');
+                    cardTitle.classList.add('text-slate-400');
+                }
+
+                // Reset subtitle text to gray
+                const cardSub = card.querySelector('.card-sub');
+                if (cardSub) {
+                    cardSub.classList.remove('text-brand-cyan');
+                    cardSub.classList.add('text-slate-400');
+                }
+
+                // Reset description text to gray
+                const cardDesc = card.querySelector('.card-desc');
+                if (cardDesc) {
+                    cardDesc.classList.remove('text-brand-cyan');
+                    cardDesc.classList.add('text-slate-400');
+                }
             });
 
-            // Highlight selected connector card
+            // Highlight selected connector card container
             element.classList.remove('border-brand-border');
             element.classList.add('border-brand-cyan/80', 'bg-brand-cyan/10');
 
-            // Show checkmark icon on selected card
+            // Show checkmark icon
             const activeCheck = element.querySelector('.check-icon');
             if (activeCheck) activeCheck.classList.remove('hidden');
 
-            // Update label text
+            // Highlight icon container in neon cyan
+            const activeIconWrapper = element.querySelector('.icon-wrapper');
+            if (activeIconWrapper) {
+                activeIconWrapper.classList.remove('bg-slate-800', 'text-slate-400');
+                activeIconWrapper.classList.add('bg-brand-cyan/20', 'text-brand-cyan');
+            }
+
+            // Highlight Title in White
+            const activeTitle = element.querySelector('.card-title');
+            if (activeTitle) {
+                activeTitle.classList.remove('text-slate-400');
+                activeTitle.classList.add('text-white');
+            }
+
+            // Highlight Subtitle in Neon Cyan
+            const activeSub = element.querySelector('.card-sub');
+            if (activeSub) {
+                activeSub.classList.remove('text-slate-400');
+                activeSub.classList.add('text-brand-cyan');
+            }
+
+            // Highlight Description in Neon Cyan
+            const activeDesc = element.querySelector('.card-desc');
+            if (activeDesc) {
+                activeDesc.classList.remove('text-slate-400');
+                activeDesc.classList.add('text-brand-cyan');
+            }
+
+            // Update label text at the bottom panel
             document.getElementById('selected-plug-name').innerText = plugName;
         }
 
