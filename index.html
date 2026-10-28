@@ -310,8 +310,6 @@
                                 <div id="live-cost" class="text-lg font-bold text-brand-green mt-1">$6.44</div>
                             </div>
                         </div>
-
-                        <p class="text-xs text-slate-400">Jack can walk away now or switch to the Active Session tab to manage or stop early.</p>
                         <p class="text-xs text-slate-400">You can safely leave or switch to the Active Session tab to monitor telemetry.</p>
                         <button onclick="switchTab('tab-active')" class="px-5 py-2.5 rounded-xl bg-brand-border hover:bg-slate-700 text-slate-200 text-xs font-semibold">View in Full Session Manager</button>
                     </div>
@@ -505,7 +503,6 @@
         </main>
     </div>
 
-    <!-- ================= MODAL: CARD AUTHENTICATION TO STOP (MARCUS) ================= -->
     <!-- ================= MODAL: CARD AUTHENTICATION TO STOP ================= -->
     <div id="modal-stop-auth" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
         <div class="glass-panel border border-brand-border rounded-2xl max-w-md w-full p-6 text-center space-y-4">
@@ -583,7 +580,7 @@
             }
         }
 
-        // Scenario 1 Logic (Jack)
+        // Scenario 1 Logic
         function selectConnector(element, plugName) {
             // Reset all connector cards to inactive/gray state
             document.querySelectorAll('.connector-card').forEach(card => {
@@ -683,7 +680,7 @@
             goToS1Step(3);
         }
 
-        // Scenario 2 Logic (Sarah)
+        // Scenario 2 Logic
         function keypadInput(val) {
             const display = document.getElementById('voucher-input-display');
             if (display.innerText === 'DRIVE15') display.innerText = '';
