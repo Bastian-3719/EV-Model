@@ -105,7 +105,7 @@
                         <span class="w-1.5 h-1.5 rounded-full bg-brand-green animate-ping"></span> ONLINE
                     </span>
                 </div>
-                <p class="text-xs text-slate-400">Hub #104 • EVC Endfield</p>
+                <p class="text-xs text-slate-400">Hub #104 • Central Business District, Station Bay A2</p>
             </div>
         </div>
 
@@ -206,7 +206,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <!-- CCS Combo 1 -->
                         <div onclick="selectConnector(this, 'CCS Plug 1 (DC Fast)')" class="connector-card glass-card border-2 border-brand-cyan/80 bg-brand-cyan/10 rounded-2xl p-5 cursor-pointer hover:border-brand-cyan transition relative group">
-                            <div class="absolute top-3 right-3 text-brand-cyan text-xl"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="check-icon absolute top-3 right-3 text-brand-cyan text-xl"><i class="fa-solid fa-circle-check"></i></div>
                             <div class="w-12 h-12 rounded-xl bg-brand-cyan/20 text-brand-cyan flex items-center justify-center text-2xl mb-3">
                                 <i class="fa-solid fa-plug-circle-bolt"></i>
                             </div>
@@ -217,6 +217,7 @@
 
                         <!-- Type 2 AC -->
                         <div onclick="selectConnector(this, 'Type 2 AC (Standard)')" class="connector-card glass-card border-2 border-brand-border rounded-2xl p-5 cursor-pointer hover:border-brand-cyan transition relative group">
+                            <div class="check-icon absolute top-3 right-3 text-brand-cyan text-xl hidden"><i class="fa-solid fa-circle-check"></i></div>
                             <div class="w-12 h-12 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-2xl mb-3">
                                 <i class="fa-solid fa-plug"></i>
                             </div>
@@ -227,6 +228,7 @@
 
                         <!-- CHAdeMO -->
                         <div onclick="selectConnector(this, 'CHAdeMO (DC)')" class="connector-card glass-card border-2 border-brand-border rounded-2xl p-5 cursor-pointer hover:border-brand-cyan transition relative group">
+                            <div class="check-icon absolute top-3 right-3 text-brand-cyan text-xl hidden"><i class="fa-solid fa-circle-check"></i></div>
                             <div class="w-12 h-12 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center text-2xl mb-3">
                                 <i class="fa-solid fa-car-battery"></i>
                             </div>
@@ -447,7 +449,7 @@
                         <div class="w-16 h-16 rounded-full bg-brand-cyan/20 text-brand-cyan flex items-center justify-center text-2xl mx-auto border border-brand-cyan/40 animate-pulse">
                             <i class="fa-solid fa-location-dot"></i>
                         </div>
-                        <div class="font-bold text-white text-lg">Hub #104 - LLS District</div>
+                        <div class="font-bold text-white text-lg">Hub #104 - Central Business District</div>
                         <div class="text-xs text-slate-400 max-w-md">8 of 10 Superchargers Available • 150kW Ultra-Fast DC</div>
                     </div>
                 </div>
@@ -583,12 +585,25 @@
 
         // Scenario 1 Logic (Jack)
         function selectConnector(element, plugName) {
+            // Reset all connector cards
             document.querySelectorAll('.connector-card').forEach(card => {
-                card.classList.remove('border-brand-cyan', 'bg-brand-cyan/10');
+                card.classList.remove('border-brand-cyan/80', 'bg-brand-cyan/10');
                 card.classList.add('border-brand-border');
+                
+                // Hide checkmark icon on unselected cards
+                const checkIcon = card.querySelector('.check-icon');
+                if (checkIcon) checkIcon.classList.add('hidden');
             });
+
+            // Highlight selected connector card
             element.classList.remove('border-brand-border');
-            element.classList.add('border-brand-cyan', 'bg-brand-cyan/10');
+            element.classList.add('border-brand-cyan/80', 'bg-brand-cyan/10');
+
+            // Show checkmark icon on selected card
+            const activeCheck = element.querySelector('.check-icon');
+            if (activeCheck) activeCheck.classList.remove('hidden');
+
+            // Update label text
             document.getElementById('selected-plug-name').innerText = plugName;
         }
 
