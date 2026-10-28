@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoltStation Pro - EV Charging Terminal</title>
+    <title>VoltStation Pro - EV Charging Terminal & Admin Portal</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -63,8 +63,11 @@
         .glow-green {
             box-shadow: 0 0 25px rgba(0, 230, 118, 0.35);
         }
-        .text-glow-cyan {
-            text-shadow: 0 0 12px rgba(0, 242, 254, 0.6);
+        .glow-purple {
+            box-shadow: 0 0 25px rgba(124, 77, 255, 0.35);
+        }
+        .glow-amber {
+            box-shadow: 0 0 25px rgba(255, 171, 0, 0.35);
         }
 
         /* Custom Scrollbar */
@@ -79,18 +82,21 @@
             border-radius: 3px;
         }
 
-        /* Pulse animation for charging */
-        @keyframes ring-pulse {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.03); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-        .animate-pulse-ring {
-            animation: ring-pulse 3s infinite ease-in-out;
+        /* Toast Popup Animation */
+        #toast-container {
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none">
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 transform translate-x-full opacity-0 pointer-events-none transition-all duration-300">
+        <div class="glass-panel border-l-4 border-brand-green p-4 rounded-xl shadow-2xl flex items-center gap-3 text-sm text-slate-100 max-w-md">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-brand-green text-xl"></i>
+            <span id="toast-message">Action processed successfully!</span>
+        </div>
+    </div>
 
     <!-- Top Station Header Bar -->
     <header class="w-full glass-panel sticky top-0 z-40 px-4 md:px-8 py-3 border-b border-brand-border flex flex-wrap items-center justify-between gap-4">
@@ -101,17 +107,17 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="font-extrabold text-lg tracking-wide text-white">VoltStation <span class="text-brand-cyan">PRO</span></h1>
-                    <span class="px-2 py-0.5 text-xs font-mono bg-brand-green/10 text-brand-green border border-brand-green/30 rounded-full flex items-center gap-1">
+                    <span id="station-status-badge" class="px-2 py-0.5 text-xs font-mono bg-brand-green/10 text-brand-green border border-brand-green/30 rounded-full flex items-center gap-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-brand-green animate-ping"></span> ONLINE
                     </span>
                 </div>
-                <p class="text-xs text-slate-400">Hub #104 • LLS District, Endfield</p>
+                <p class="text-xs text-slate-400">LLS District Network • EVC Stations #101 to #104</p>
             </div>
         </div>
 
-        <!-- Quick Scenario Switcher Badges (Helpful for Screenshots) -->
+        <!-- Quick Scenario Switcher Badges -->
         <div class="flex items-center gap-2 overflow-x-auto py-1">
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1 hidden lg:inline">Quick Mode Presets:</span>
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1 hidden lg:inline">Quick Scenarios:</span>
             <button onclick="switchTab('tab-public')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-border/60 hover:bg-brand-cyan/20 hover:border-brand-cyan/50 border border-transparent transition text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
                 <i class="fa-solid fa-charging-station text-brand-cyan"></i> Express Charge
             </button>
@@ -119,7 +125,13 @@
                 <i class="fa-solid fa-ticket text-brand-green"></i> Voucher Redeem
             </button>
             <button onclick="switchTab('tab-active')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-border/60 hover:bg-brand-cyan/20 hover:border-brand-cyan/50 border border-transparent transition text-slate-200 flex items-center gap-1.5 whitespace-nowrap">
-                <i class="fa-solid fa-gauge-high text-brand-purple"></i> Active Monitor
+                <i class="fa-solid fa-gauge-high text-brand-purple"></i> Active Session
+            </button>
+            <button onclick="switchTab('tab-maintenance')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-amber/20 border border-brand-amber/50 text-brand-amber hover:bg-brand-amber/30 transition flex items-center gap-1.5 whitespace-nowrap glow-amber">
+                <i class="fa-solid fa-screwdriver-wrench text-brand-amber"></i> Technician Portal
+            </button>
+            <button onclick="switchTab('tab-admin')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-purple/20 border border-brand-purple/50 text-brand-purple hover:bg-brand-purple/30 transition flex items-center gap-1.5 whitespace-nowrap glow-purple">
+                <i class="fa-solid fa-chart-pie text-brand-purple"></i> Admin Portal
             </button>
         </div>
 
@@ -160,6 +172,16 @@
                     <span>Active Session</span>
                 </button>
 
+                <button onclick="switchTab('tab-maintenance')" id="nav-tab-maintenance" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition w-full text-left text-slate-400 hover:text-slate-200 hover:bg-brand-card">
+                    <i class="fa-solid fa-wrench text-lg w-6 text-center text-brand-amber"></i>
+                    <span>Technician Portal</span>
+                </button>
+
+                <button onclick="switchTab('tab-admin')" id="nav-tab-admin" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition w-full text-left text-slate-400 hover:text-slate-200 hover:bg-brand-card">
+                    <i class="fa-solid fa-calculator text-lg w-6 text-center text-brand-purple"></i>
+                    <span>Financial & Tariff</span>
+                </button>
+
                 <button onclick="switchTab('tab-map')" id="nav-tab-map" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition w-full text-left text-slate-400 hover:text-slate-200 hover:bg-brand-card">
                     <i class="fa-solid fa-map-location-dot text-lg w-6 text-center"></i>
                     <span>Network Map</span>
@@ -175,12 +197,12 @@
             <div class="hidden md:block glass-card p-3 rounded-xl text-xs space-y-2 text-slate-400">
                 <div class="flex justify-between font-semibold text-slate-300">
                     <span>Power Delivery</span>
-                    <span class="text-brand-green">150 kW DC</span>
+                    <span id="power-delivery-label" class="text-brand-green">150 kW DC</span>
                 </div>
                 <div class="w-full bg-brand-border h-1.5 rounded-full overflow-hidden">
-                    <div class="bg-brand-green h-full w-[85%]"></div>
+                    <div id="power-delivery-bar" class="bg-brand-green h-full w-[85%]"></div>
                 </div>
-                <p class="text-[10px] text-slate-500">Grid Load: Normal (Optimal)</p>
+                <p class="text-[10px] text-slate-500">LLS District • Grid Load: Normal</p>
             </div>
         </nav>
 
@@ -194,10 +216,30 @@
                         <h2 class="text-2xl font-bold text-white">Public Fast Charging Session</h2>
                         <p class="text-sm text-slate-400">Plug in your EV, authorize payment, and start high-speed charging.</p>
                     </div>
-                    <div class="text-right font-mono text-xs text-slate-400">
-                        <div>Step <span id="s1-step-num" class="text-brand-cyan font-bold">1</span> of 3</div>
-                        <div id="s1-step-title" class="text-slate-200 font-semibold">Select Connector</div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="openReportModal()" class="px-3 py-1.5 rounded-lg bg-brand-danger/10 border border-brand-danger/30 text-brand-danger hover:bg-brand-danger/20 text-xs font-semibold transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>Report a Problem</span>
+                        </button>
+                        <div class="text-right font-mono text-xs text-slate-400 hidden sm:block">
+                            <div>Step <span id="s1-step-num" class="text-brand-cyan font-bold">1</span> of 3</div>
+                            <div id="s1-step-title" class="text-slate-200 font-semibold">Select Connector</div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Fault Warning Notice Banner if Station is Flagged -->
+                <div id="driver-fault-banner" class="hidden glass-card p-4 rounded-xl border border-brand-amber/40 bg-brand-amber/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-triangle-exclamation text-brand-amber text-xl"></i>
+                        <div>
+                            <div class="text-sm font-bold text-slate-100">Status: Fault Reported — Awaiting Inspection</div>
+                            <div class="text-xs text-slate-300">A technician has been notified. You can use a nearby charger listed below.</div>
+                        </div>
+                    </div>
+                    <button onclick="openNearbyModal()" class="px-3 py-1.5 rounded-lg bg-brand-amber text-slate-950 font-bold text-xs hover:brightness-110">
+                        View Nearby Alternatives
+                    </button>
                 </div>
 
                 <!-- Step 1: Select Connector -->
@@ -238,7 +280,7 @@
                         </div>
                     </div>
 
-                    <div class="glass-card p-4 rounded-xl flex items-center justify-between border border-brand-border">
+                    <div class="glass-card p-4 rounded-xl flex flex-wrap items-center justify-between gap-4 border border-brand-border">
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-circle-info text-brand-cyan text-xl"></i>
                             <div>
@@ -246,10 +288,15 @@
                                 <div class="text-xs text-slate-400">Plug the cable into your electric vehicle before tapping payment card.</div>
                             </div>
                         </div>
-                        <button onclick="goToS1Step(2)" class="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-slate-950 font-bold text-sm hover:brightness-110 transition glow-cyan flex items-center gap-2">
-                            <span>Proceed to Pay</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openReportModal()" class="px-4 py-3 rounded-xl bg-slate-800 text-brand-amber border border-brand-amber/30 text-xs font-bold hover:bg-slate-700 transition">
+                                Issue Starting Session?
+                            </button>
+                            <button onclick="goToS1Step(2)" class="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-blue to-brand-cyan text-slate-950 font-bold text-sm hover:brightness-110 transition glow-cyan flex items-center gap-2">
+                                <span>Proceed to Pay</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -310,8 +357,15 @@
                                 <div id="live-cost" class="text-lg font-bold text-brand-green mt-1">$6.44</div>
                             </div>
                         </div>
+
                         <p class="text-xs text-slate-400">You can safely leave or switch to the Active Session tab to monitor telemetry.</p>
-                        <button onclick="switchTab('tab-active')" class="px-5 py-2.5 rounded-xl bg-brand-border hover:bg-slate-700 text-slate-200 text-xs font-semibold">View in Full Session Manager</button>
+                        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                            <button onclick="switchTab('tab-active')" class="px-5 py-2.5 rounded-xl bg-brand-border hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">View in Full Session Manager</button>
+                            <button onclick="resetExpressCharge()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-blue/20 to-brand-cyan/20 border border-brand-cyan/40 hover:bg-brand-cyan/30 text-brand-cyan text-xs font-semibold transition flex items-center gap-2">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Finish & Start New Session</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -435,11 +489,452 @@
                 </div>
             </div>
 
+            <!-- ================= TECHNICIAN MAINTENANCE PORTAL ================= -->
+            <div id="tab-maintenance" class="tab-content hidden space-y-6">
+                <div class="border-b border-brand-border pb-4 flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-2xl font-bold text-white">Technician Maintenance Portal</h2>
+                            <span id="tech-shift-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-brand-amber/20 text-brand-amber border border-brand-amber/40">
+                                On Duty Shift • Working Hours
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-400">Technician view: Inspection queue, diagnostic telemetry, safety isolation, and fault resolution.</p>
+                    </div>
+
+                    <!-- Staff Card Auth Status -->
+                    <div class="flex items-center gap-3">
+                        <div id="staff-auth-pill" class="glass-card px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-mono text-slate-400 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                            <span>Staff Unauthenticated</span>
+                        </div>
+                        <button id="auth-staff-btn" onclick="toggleStaffAuth()" class="px-4 py-2 rounded-xl bg-brand-amber/20 border border-brand-amber/50 text-brand-amber hover:bg-brand-amber/30 font-bold text-xs transition flex items-center gap-2 glow-amber">
+                            <i class="fa-solid fa-id-card"></i>
+                            <span id="auth-btn-label">Tap Staff Card</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Technician Shift & Working Hours Controls -->
+                <div class="glass-card p-4 rounded-2xl border border-brand-border flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-brand-amber/10 text-brand-amber flex items-center justify-center text-xl border border-brand-amber/30">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-300 uppercase tracking-wider">System Operating Mode</div>
+                            <div class="text-xs text-slate-400">Controls report routing and driver notification behavior.</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-xs font-mono">
+                        <span class="text-slate-400">Simulate Time:</span>
+                        <button onclick="setSystemHours('working')" id="btn-hours-working" class="px-3 py-1.5 rounded-lg bg-brand-amber text-slate-950 font-bold border border-brand-amber">
+                            Working Hours (08:00 - 18:00)
+                        </button>
+                        <button onclick="setSystemHours('outside')" id="btn-hours-outside" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-brand-border">
+                            After Hours (Midnight)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Maintenance Interface Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    <!-- Ticket Queue List (Left Column) -->
+                    <div class="lg:col-span-1 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-brand-amber"></i> Reported Fault Queue
+                            </h3>
+                            <span id="queue-count-badge" class="px-2 py-0.5 rounded-full bg-brand-amber/20 text-brand-amber text-xs font-mono">2 Active</span>
+                        </div>
+
+                        <!-- Ticket Item 1 -->
+                        <div id="ticket-card-104" onclick="selectTicket('104')" class="ticket-card glass-card p-4 rounded-xl border-2 border-brand-amber bg-brand-amber/10 cursor-pointer space-y-2 relative">
+                            <div class="flex justify-between items-start">
+                                <span class="font-bold text-white text-sm">Station #104 (Central Hub)</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-danger/20 text-brand-danger border border-brand-danger/40">HAZARD FLAG</span>
+                            </div>
+                            <p class="text-xs text-slate-300 line-clamp-2">"Session failed at pre-charge handshake. High temp alert."</p>
+                            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400 pt-1 border-t border-brand-border/60">
+                                <span>Reported: 10 mins ago</span>
+                                <span class="text-brand-amber font-semibold">Awaiting Inspection</span>
+                            </div>
+                        </div>
+
+                        <!-- Ticket Item 2 -->
+                        <div id="ticket-card-102" onclick="selectTicket('102')" class="ticket-card glass-card p-4 rounded-xl border border-brand-border hover:border-brand-amber/50 cursor-pointer space-y-2 relative">
+                            <div class="flex justify-between items-start">
+                                <span class="font-bold text-white text-sm">Station #102 (West Wing)</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-400">ROUTINE</span>
+                            </div>
+                            <p class="text-xs text-slate-300 line-clamp-2">"Connector latch did not click into vehicle inlet."</p>
+                            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400 pt-1 border-t border-brand-border/60">
+                                <span>Reported: 45 mins ago</span>
+                                <span class="text-slate-400">Awaiting Inspection</span>
+                            </div>
+                        </div>
+
+                        <!-- Ticket Item 3 (Resolved/History) -->
+                        <div class="glass-card p-4 rounded-xl border border-brand-border opacity-60 space-y-2">
+                            <div class="flex justify-between items-start">
+                                <span class="font-bold text-slate-400 text-sm">Station #101 (North Lot)</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-brand-green/20 text-brand-green">RESOLVED</span>
+                            </div>
+                            <p class="text-xs text-slate-400 line-clamp-1">Loose cable seat re-verified. Hardware OK.</p>
+                            <div class="text-[10px] font-mono text-slate-500">Closed by Technician • 2 hrs ago</div>
+                        </div>
+                    </div>
+
+                    <!-- Inspection Details & Diagnostics Panel (Right 2 Columns) -->
+                    <div class="lg:col-span-2 space-y-5">
+                        
+                        <!-- Selected Ticket Details -->
+                        <div class="glass-card p-5 rounded-2xl border border-brand-border space-y-4">
+                            <div class="flex flex-wrap justify-between items-center border-b border-brand-border pb-3 gap-2">
+                                <div>
+                                    <span class="text-xs font-mono text-brand-amber uppercase font-bold">Ticket #TCK-2026-88</span>
+                                    <h3 id="detail-station-title" class="text-lg font-bold text-white">Inspection: Station #104 (Central CBD Hub)</h3>
+                                </div>
+                                <div id="maintenance-mode-status-badge" class="px-3 py-1 rounded-full text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-lock text-xs"></i> Mode: Station Active (Normal)
+                                </div>
+                            </div>
+
+                            <!-- Driver Problem Statement & Error Log -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                                <div class="glass-panel p-3.5 rounded-xl border border-brand-border space-y-1">
+                                    <div class="text-slate-400 font-sans font-bold">Driver Complaint Description:</div>
+                                    <div id="detail-driver-desc" class="text-slate-200 font-sans italic">"Session failed immediately upon plugging in. Screen displayed connection timeout error twice."</div>
+                                </div>
+                                <div class="glass-panel p-3.5 rounded-xl border border-brand-border space-y-1">
+                                    <div class="text-slate-400 font-sans font-bold">System Log Diagnostic Data:</div>
+                                    <div id="detail-error-log" class="text-brand-amber font-mono text-[11px]">ERR_CC1_VOLTAGE_FLUX (Code 0x4B) • Thermocouple temp spike 62°C.</div>
+                                </div>
+                            </div>
+
+                            <!-- Step 1: Authentication Guard to Engage Maintenance Mode -->
+                            <div id="maint-mode-lock-box" class="glass-panel p-4 rounded-xl border border-brand-amber/30 bg-brand-amber/5 flex flex-wrap items-center justify-between gap-3">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa-solid fa-shield-cat text-brand-amber text-2xl"></i>
+                                    <div>
+                                        <div class="text-xs font-bold text-white">Safety Lock Activated</div>
+                                        <div class="text-[11px] text-slate-400">Authenticate staff card to put charger into isolated Maintenance Mode before performing checks.</div>
+                                    </div>
+                                </div>
+                                <button onclick="toggleStaffAuth()" class="px-5 py-2.5 rounded-xl bg-brand-amber text-slate-950 font-bold text-xs hover:brightness-110 transition shadow-md">
+                                    Authenticate Staff Card
+                                </button>
+                            </div>
+
+                            <!-- Step 2: Active Maintenance Workstation (unlocked via auth) -->
+                            <div id="maint-controls-panel" class="hidden space-y-5 pt-2">
+                                <div class="p-3 bg-brand-amber/10 border border-brand-amber/40 rounded-xl text-xs text-brand-amber flex items-center gap-2">
+                                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                                    <span><strong>MAINTENANCE MODE ENGAGED:</strong> Station is offline to public drivers. High-voltage interlocks isolated.</span>
+                                </div>
+
+                                <!-- Diagnostic Tools -->
+                                <div class="space-y-3">
+                                    <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Technician Diagnostic Diagnostics:</h4>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <button onclick="runDiagnostics('interlock')" class="p-3 rounded-xl bg-slate-900 border border-brand-border hover:border-brand-cyan text-left font-mono text-xs transition">
+                                            <div class="text-slate-400 text-[10px]">Step A</div>
+                                            <div class="text-white font-bold mt-1">Interlock Test</div>
+                                            <div id="diag-res-1" class="text-[10px] text-brand-cyan mt-1">Ready</div>
+                                        </button>
+
+                                        <button onclick="runDiagnostics('cable')" class="p-3 rounded-xl bg-slate-900 border border-brand-border hover:border-brand-cyan text-left font-mono text-xs transition">
+                                            <div class="text-slate-400 text-[10px]">Step B</div>
+                                            <div class="text-white font-bold mt-1">Cable Pilot Signal</div>
+                                            <div id="diag-res-2" class="text-[10px] text-brand-cyan mt-1">Ready</div>
+                                        </button>
+
+                                        <button onclick="runDiagnostics('charging')" class="p-3 rounded-xl bg-slate-900 border border-brand-border hover:border-brand-cyan text-left font-mono text-xs transition">
+                                            <div class="text-slate-400 text-[10px]">Step C</div>
+                                            <div class="text-white font-bold mt-1">Test Charge Session</div>
+                                            <div id="diag-res-3" class="text-[10px] text-brand-cyan mt-1">Ready</div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Fault Verification & Outcome Selection -->
+                                <div class="space-y-3 border-t border-brand-border pt-4">
+                                    <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Inspection Findings & Resolution:</h4>
+                                    
+                                    <div class="space-y-2 text-xs">
+                                        <label class="block text-slate-400">Select Verification Result:</label>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <label class="glass-panel p-3 rounded-xl border border-brand-border flex items-center gap-3 cursor-pointer hover:border-brand-amber">
+                                                <input type="radio" name="fault_outcome" value="repaired" checked onchange="toggleOutcomeView('repaired')" class="accent-brand-amber">
+                                                <div>
+                                                    <div class="font-bold text-white">Fault Confirmed & Repaired</div>
+                                                    <div class="text-[10px] text-slate-400">Replaced component / tightened interlock.</div>
+                                                </div>
+                                            </label>
+                                            <label class="glass-panel p-3 rounded-xl border border-brand-border flex items-center gap-3 cursor-pointer hover:border-brand-amber">
+                                                <input type="radio" name="fault_outcome" value="unreproducible" onchange="toggleOutcomeView('unreproducible')" class="accent-brand-amber">
+                                                <div>
+                                                    <div class="font-bold text-white">Problem Not Reproduced</div>
+                                                    <div class="text-[10px] text-slate-400">Likely vehicle software issue or user error.</div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Outcome Notes -->
+                                    <div class="space-y-2">
+                                        <label class="block text-xs text-slate-400 font-mono">Technician Log & Repair Details:</label>
+                                        <textarea id="tech-notes-input" rows="2" class="w-full bg-slate-950 border border-brand-border rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-amber font-mono" placeholder="Enter findings, serial numbers replaced, or safety check results..."></textarea>
+                                    </div>
+
+                                    <!-- Safety Procedure Checklist -->
+                                    <div class="glass-panel p-3 rounded-xl border border-brand-border space-y-2">
+                                        <div class="text-xs font-bold text-slate-300">Mandatory Approved Safety Checklist:</div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono text-slate-300">
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" id="chk-safety-1" class="rounded bg-slate-950 border-brand-border text-brand-amber focus:ring-0" checked>
+                                                <span>Ground Continuity Verified</span>
+                                            </label>
+                                            <label class="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" id="chk-safety-2" class="rounded bg-slate-950 border-brand-border text-brand-amber focus:ring-0" checked>
+                                                <span>Thermal Couplers Inspected</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Final Action Buttons -->
+                                    <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+                                        <button onclick="recordFindingsOnly()" class="px-4 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs hover:bg-slate-700 transition">
+                                            Record Findings & Keep in Queue
+                                        </button>
+                                        <button onclick="completeMaintenance()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-green to-emerald-400 text-slate-950 font-bold text-xs hover:brightness-110 transition glow-green flex items-center gap-2">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <span>Restore Station to Service ("Available")</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ADMIN & FINANCIAL DASHBOARD ================= -->
+            <div id="tab-admin" class="tab-content hidden space-y-6">
+                <div class="border-b border-brand-border pb-4 flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-2xl font-bold text-white">Admin & Financial Portal</h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-brand-purple/20 text-brand-purple border border-brand-purple/40">
+                                EVC Stations #101 - #104 (LLS District)
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-400">Financial view: Energy sales telemetry, tax breakdowns, and tariff management.</p>
+                    </div>
+
+                    <!-- Inner Sub-tabs: Financial Report vs Tariff Management -->
+                    <div class="flex bg-slate-900/80 p-1 rounded-xl border border-brand-border font-medium text-xs">
+                        <button onclick="switchAdminSubTab('subtab-financial')" id="subtab-btn-financial" class="px-4 py-2 rounded-lg bg-brand-purple text-white font-bold shadow-md transition">
+                            <i class="fa-solid fa-chart-line mr-1.5"></i> Financial Report
+                        </button>
+                        <button onclick="switchAdminSubTab('subtab-tariff')" id="subtab-btn-tariff" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white transition">
+                            <i class="fa-solid fa-sliders mr-1.5"></i> Tariff Management
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SUB-TAB 1: FINANCIAL REPORTING -->
+                <div id="subtab-financial" class="space-y-6">
+                    <!-- Date Range Filter Selector -->
+                    <div class="glass-card p-4 rounded-2xl border border-brand-border flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-calendar-days text-brand-purple text-xl"></i>
+                            <div>
+                                <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Audit Date Range</div>
+                                <div class="text-sm font-bold text-white">District LLS Consolidated Report</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex items-center gap-2 bg-slate-950 border border-brand-border px-3 py-2 rounded-xl text-xs font-mono">
+                                <span class="text-slate-400">From:</span>
+                                <input type="date" id="admin-date-start" value="2026-10-20" onchange="updateFinancialReport()" class="bg-transparent text-slate-200 focus:outline-none">
+                            </div>
+                            <div class="flex items-center gap-2 bg-slate-950 border border-brand-border px-3 py-2 rounded-xl text-xs font-mono">
+                                <span class="text-slate-400">To:</span>
+                                <input type="date" id="admin-date-end" value="2026-10-26" onchange="updateFinancialReport()" class="bg-transparent text-slate-200 focus:outline-none">
+                            </div>
+                            <button onclick="updateFinancialReport()" class="px-4 py-2 rounded-xl bg-brand-purple/20 hover:bg-brand-purple/30 text-brand-purple border border-brand-purple/40 text-xs font-bold transition">
+                                Filter Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Financial Key Metrics Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="glass-card p-5 rounded-2xl border border-brand-border relative overflow-hidden">
+                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gross Energy Sales</div>
+                            <div id="fin-gross-sales" class="text-2xl md:text-3xl font-extrabold text-white font-mono mt-2">$24,850.00</div>
+                            <div class="text-xs text-brand-green font-mono mt-2 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-trend-up"></i> 71,000 kWh Delivered
+                            </div>
+                        </div>
+
+                        <div class="glass-card p-5 rounded-2xl border border-brand-border relative overflow-hidden">
+                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tax Deductions (10% VAT)</div>
+                            <div id="fin-tax" class="text-2xl md:text-3xl font-extrabold text-brand-amber font-mono mt-2">$2,485.00</div>
+                            <div class="text-xs text-slate-400 font-mono mt-2">Remitted to Tax Authority</div>
+                        </div>
+
+                        <div class="glass-card p-5 rounded-2xl border border-brand-purple/40 bg-brand-purple/5 relative overflow-hidden">
+                            <div class="text-xs font-semibold text-brand-purple uppercase tracking-wider">Net District Revenue</div>
+                            <div id="fin-net-rev" class="text-2xl md:text-3xl font-extrabold text-brand-green font-mono mt-2">$22,365.00</div>
+                            <div class="text-xs text-brand-cyan font-mono mt-2">10/20/2026 - 10/26/2026</div>
+                        </div>
+                    </div>
+
+                    <!-- Station Breakdown Table -->
+                    <div class="glass-card rounded-2xl border border-brand-border overflow-hidden">
+                        <div class="p-4 bg-slate-900/60 border-b border-brand-border flex justify-between items-center">
+                            <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider">EVC Stations Revenue Breakdown (LLS District)</h3>
+                            <button onclick="exportCSV()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-download"></i> Export CSV
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs font-mono">
+                                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]">
+                                    <tr>
+                                        <th class="p-3.5">Station Identifier</th>
+                                        <th class="p-3.5">Total Sessions</th>
+                                        <th class="p-3.5">Energy Dispensed</th>
+                                        <th class="p-3.5">Gross Revenue</th>
+                                        <th class="p-3.5">Net Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-brand-border text-slate-300">
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-white flex items-center gap-2"><i class="fa-solid fa-charging-station text-brand-cyan"></i> Station #101</td>
+                                        <td class="p-3.5">482 Sessions</td>
+                                        <td class="p-3.5">19,280 kWh</td>
+                                        <td class="p-3.5">$6,748.00</td>
+                                        <td class="p-3.5 text-brand-green font-bold">$6,073.20</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-white flex items-center gap-2"><i class="fa-solid fa-charging-station text-brand-cyan"></i> Station #102</td>
+                                        <td class="p-3.5">510 Sessions</td>
+                                        <td class="p-3.5">20,400 kWh</td>
+                                        <td class="p-3.5">$7,140.00</td>
+                                        <td class="p-3.5 text-brand-green font-bold">$6,426.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-white flex items-center gap-2"><i class="fa-solid fa-charging-station text-brand-cyan"></i> Station #103</td>
+                                        <td class="p-3.5">390 Sessions</td>
+                                        <td class="p-3.5">15,600 kWh</td>
+                                        <td class="p-3.5">$5,460.00</td>
+                                        <td class="p-3.5 text-brand-green font-bold">$4,914.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-3.5 font-bold text-white flex items-center gap-2"><i class="fa-solid fa-charging-station text-brand-cyan"></i> Station #104</td>
+                                        <td class="p-3.5">392 Sessions</td>
+                                        <td class="p-3.5">15,720 kWh</td>
+                                        <td class="p-3.5">$5,502.00</td>
+                                        <td class="p-3.5 text-brand-green font-bold">$4,951.80</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-TAB 2: TARIFF MANAGEMENT -->
+                <div id="subtab-tariff" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Rate Edit Form -->
+                        <div class="glass-card p-5 rounded-2xl border border-brand-border space-y-5">
+                            <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                                <div>
+                                    <h3 class="text-base font-bold text-white">Edit Peak Hours Pricing</h3>
+                                    <p class="text-xs text-slate-400">Configure rates for upcoming month across LLS District.</p>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full bg-brand-amber/10 text-brand-amber border border-brand-amber/30 text-[10px] font-mono">
+                                    Peak Rate Active
+                                </span>
+                            </div>
+
+                            <div class="space-y-4 font-mono text-xs">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Time Interval Window:</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" value="5:00 PM" class="w-full bg-slate-950 border border-brand-border rounded-xl p-2.5 text-white">
+                                        <span class="text-slate-500">to</span>
+                                        <input type="text" value="9:00 PM" class="w-full bg-slate-950 border border-brand-border rounded-xl p-2.5 text-white">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Peak Hour Tariff Rate ($ / kWh):</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-3 text-slate-400">$</span>
+                                        <input type="number" id="tariff-rate-input" step="0.01" value="0.40" class="w-full bg-slate-950 border border-brand-purple/50 rounded-xl p-2.5 pl-7 text-brand-cyan text-lg font-bold focus:outline-none focus:border-brand-purple">
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 mt-1">Previous rate: $0.35 / kWh</p>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 flex flex-col gap-2">
+                                <button onclick="simulateImpact()" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-brand-purple/40 text-brand-purple font-bold text-xs transition flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                    <span>Simulate Impact</span>
+                                </button>
+
+                                <button onclick="publishToNetwork()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-purple to-indigo-500 text-white font-bold text-sm hover:brightness-110 transition shadow-lg flex items-center justify-center gap-2 glow-purple">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Publish to Network (Push Live)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Impact Preview Card -->
+                        <div id="impact-preview-box" class="glass-card p-5 rounded-2xl border border-brand-border flex flex-col justify-between space-y-4">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-brand-purple"></i> Revenue Impact Simulation
+                                </h3>
+                                <p class="text-xs text-slate-400 mb-4">Projected financial variance based on 10/20/2026 - 10/26/2026 telemetry data.</p>
+
+                                <div class="space-y-3 font-mono text-xs">
+                                    <div class="glass-panel p-3 rounded-xl border border-brand-border flex justify-between items-center">
+                                        <span class="text-slate-400">Rate Shift:</span>
+                                        <span class="text-white font-bold">$0.35 → <span class="text-brand-cyan">$0.40 / kWh</span></span>
+                                    </div>
+                                    <div class="glass-panel p-3 rounded-xl border border-brand-border flex justify-between items-center">
+                                        <span class="text-slate-400">Peak Energy Volume:</span>
+                                        <span class="text-white">28,400 kWh</span>
+                                    </div>
+                                    <div class="glass-panel p-3 rounded-xl border border-brand-purple/30 bg-brand-purple/10 flex justify-between items-center">
+                                        <span class="text-slate-300 font-bold">Projected Profit Margin Gain:</span>
+                                        <span id="impact-gain-text" class="text-brand-green font-extrabold text-sm">+$1,420.00 / week</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card p-3 rounded-xl border border-brand-border text-[11px] text-slate-400 flex items-center gap-2">
+                                <i class="fa-solid fa-shield-halved text-brand-green text-base"></i>
+                                <span>Network Sync: Target Stations #101, #102, #103, #104 ready for cloud update.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ================= TAB: NETWORK MAP ================= -->
             <div id="tab-map" class="tab-content hidden space-y-6">
                 <div class="border-b border-brand-border pb-4">
                     <h2 class="text-2xl font-bold text-white">Regional Charger Network Map</h2>
-                    <p class="text-sm text-slate-400">Live availability of nearby stations in Ho Chi Minh City Network.</p>
+                    <p class="text-sm text-slate-400">Live availability of nearby stations in District Charging Network.</p>
                 </div>
                 <div class="glass-card rounded-2xl p-4 border border-brand-border relative h-80 flex items-center justify-center overflow-hidden bg-slate-950">
                     <div class="absolute inset-0 opacity-30 bg-[radial-gradient(#00f2fe_1px,transparent_1px)] [background-size:16px_16px]"></div>
@@ -447,7 +942,7 @@
                         <div class="w-16 h-16 rounded-full bg-brand-cyan/20 text-brand-cyan flex items-center justify-center text-2xl mx-auto border border-brand-cyan/40 animate-pulse">
                             <i class="fa-solid fa-location-dot"></i>
                         </div>
-                        <div class="font-bold text-white text-lg">Hub #104 - LLS District</div>
+                        <div class="font-bold text-white text-lg">Hub #104 - Central Business District</div>
                         <div class="text-xs text-slate-400 max-w-md">8 of 10 Superchargers Available • 150kW Ultra-Fast DC</div>
                     </div>
                 </div>
@@ -483,9 +978,9 @@
                                 <td class="p-3.5"><span class="px-2 py-0.5 rounded bg-brand-cyan/10 text-brand-cyan">Current Rate</span></td>
                             </tr>
                             <tr>
-                                <td class="p-3.5">16:00 - 21:00</td>
+                                <td class="p-3.5">17:00 - 21:00</td>
                                 <td class="p-3.5 text-brand-amber">Peak Demand</td>
-                                <td class="p-3.5 font-bold">$0.48 / kWh</td>
+                                <td id="public-peak-rate-display" class="p-3.5 font-bold">$0.40 / kWh</td>
                                 <td class="p-3.5"><span class="px-2 py-0.5 rounded bg-brand-amber/10 text-brand-amber">High Demand</span></td>
                             </tr>
                         </tbody>
@@ -495,12 +990,112 @@
 
             <!-- Footer / Kiosk Status Bar -->
             <footer class="pt-4 border-t border-brand-border/60 flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2">
-                <div>Support Hotline: 1-800-VOLT-EV • Firmware v4.12.0-PRO</div>
+                <div>Support Hotline: 1-800-VOLT-EV • Network Hub #101-#104 • Firmware v4.12.0-PRO</div>
                 <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-brand-green"></span> Station Terminal Ready
+                    <span id="footer-status-dot" class="w-2 h-2 rounded-full bg-brand-green"></span>
+                    <span id="footer-status-text">Station Terminal Ready</span>
                 </div>
             </footer>
         </main>
+    </div>
+
+    <!-- ================= MODAL: DRIVER REPORT A PROBLEM ================= -->
+    <div id="modal-report-problem" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel border border-brand-border rounded-2xl max-w-lg w-full p-6 space-y-4 text-left">
+            <div class="flex justify-between items-start">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-danger/10 text-brand-danger flex items-center justify-center text-xl border border-brand-danger/30">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Report Charger Issue</h3>
+                        <p class="text-xs text-slate-400">Unable to charge? Notify station support immediately.</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-report-problem')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-slate-300 font-sans mb-1 font-semibold">Describe Problem:</label>
+                    <textarea id="report-issue-desc" rows="3" class="w-full bg-slate-950 border border-brand-border rounded-xl p-3 text-white focus:outline-none focus:border-brand-cyan" placeholder="e.g. Session failed to start, cable plug damaged, or screen unresponsive..."></textarea>
+                </div>
+
+                <label class="glass-panel p-3 rounded-xl border border-brand-border flex items-center gap-3 cursor-pointer hover:border-brand-danger/50">
+                    <input type="checkbox" id="report-safety-hazard" class="rounded bg-slate-950 border-brand-border text-brand-danger focus:ring-0">
+                    <div>
+                        <div class="text-white font-sans font-bold text-xs">Flag as Safety Hazard</div>
+                        <div class="text-[10px] text-slate-400 font-sans">Exposed wiring, spark, or physical damage requiring urgent isolation.</div>
+                    </div>
+                </label>
+            </div>
+
+            <div id="report-hours-warning" class="hidden p-3 rounded-xl bg-brand-amber/10 border border-brand-amber/30 text-xs text-brand-amber space-y-1">
+                <div class="font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-moon"></i> Outside Working Hours Notice
+                </div>
+                <p class="text-[11px] text-slate-300">Routine maintenance support is currently unavailable overnight. Your report will be queued for urgent technician review on the next morning shift.</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2 pt-2">
+                <button onclick="submitDriverReport()" class="flex-1 py-3.5 rounded-xl bg-brand-danger text-white font-bold text-xs hover:bg-red-600 transition shadow-lg">
+                    Submit Report & Search Alternatives
+                </button>
+                <button onclick="closeModal('modal-report-problem')" class="py-3.5 px-4 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs hover:bg-slate-700">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: NEARBY ALTERNATIVE STATIONS ================= -->
+    <div id="modal-nearby-stations" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel border border-brand-border rounded-2xl max-w-lg w-full p-6 space-y-4 text-left">
+            <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Nearby Charging Stations</h3>
+                    <p class="text-xs text-slate-400">Real-time availability at nearest LLS District network hubs.</p>
+                </div>
+                <button onclick="closeModal('modal-nearby-stations')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <!-- Station 1 -->
+                <div class="glass-card p-3.5 rounded-xl border border-brand-green/30 bg-brand-green/5 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-white text-sm">Station #101 (North District)</div>
+                        <div class="text-slate-400 text-[11px] font-mono mt-0.5"><i class="fa-solid fa-location-arrow text-brand-cyan"></i> 0.8 km away • 150 kW DC</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2 py-1 rounded-full bg-brand-green/20 text-brand-green font-mono font-bold text-[10px]">4 Available</span>
+                    </div>
+                </div>
+
+                <!-- Station 2 -->
+                <div class="glass-card p-3.5 rounded-xl border border-brand-border flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-white text-sm">Station #102 (West Mall)</div>
+                        <div class="text-slate-400 text-[11px] font-mono mt-0.5"><i class="fa-solid fa-location-arrow text-brand-cyan"></i> 1.4 km away • 60 kW DC</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2 py-1 rounded-full bg-brand-green/20 text-brand-green font-mono font-bold text-[10px]">2 Available</span>
+                    </div>
+                </div>
+
+                <!-- Station 3 -->
+                <div class="glass-card p-3.5 rounded-xl border border-brand-border flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-white text-sm">Station #103 (East Metro)</div>
+                        <div class="text-slate-400 text-[11px] font-mono mt-0.5"><i class="fa-solid fa-location-arrow text-brand-cyan"></i> 2.1 km away • 22 kW AC</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2 py-1 rounded-full bg-brand-amber/20 text-brand-amber font-mono font-bold text-[10px]">1 Available</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeModal('modal-nearby-stations')" class="w-full py-3 rounded-xl bg-brand-cyan text-slate-950 font-bold text-xs hover:brightness-110">
+                Acknowledge & Get Directions
+            </button>
+        </div>
     </div>
 
     <!-- ================= MODAL: CARD AUTHENTICATION TO STOP ================= -->
@@ -554,6 +1149,11 @@
 
     <!-- JavaScript Logic -->
     <script>
+        // System State Variables
+        let isWorkingHours = true;
+        let isStaffAuthenticated = false;
+        let currentSelectedTicket = '104';
+
         // System Clock
         function updateClock() {
             const now = new Date();
@@ -562,6 +1162,29 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // Notification Toast Helper
+        function showToast(message, isWarning = false) {
+            const container = document.getElementById('toast-container');
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-message').innerText = message;
+            
+            if (isWarning) {
+                icon.className = "fa-solid fa-triangle-exclamation text-brand-amber text-xl";
+                container.firstElementChild.className = "glass-panel border-l-4 border-brand-amber p-4 rounded-xl shadow-2xl flex items-center gap-3 text-sm text-slate-100 max-w-md";
+            } else {
+                icon.className = "fa-solid fa-circle-check text-brand-green text-xl";
+                container.firstElementChild.className = "glass-panel border-l-4 border-brand-green p-4 rounded-xl shadow-2xl flex items-center gap-3 text-sm text-slate-100 max-w-md";
+            }
+
+            container.classList.remove('translate-x-full', 'opacity-0');
+            container.classList.add('translate-x-0', 'opacity-100');
+            
+            setTimeout(() => {
+                container.classList.remove('translate-x-0', 'opacity-100');
+                container.classList.add('translate-x-full', 'opacity-0');
+            }, 3500);
+        }
 
         // Navigation Tab Switching
         function switchTab(tabId) {
@@ -580,83 +1203,258 @@
             }
         }
 
-        // Scenario 1 Logic
+        // Modal Controls
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openReportModal() {
+            document.getElementById('modal-report-problem').classList.remove('hidden');
+            if (!isWorkingHours) {
+                document.getElementById('report-hours-warning').classList.remove('hidden');
+            } else {
+                document.getElementById('report-hours-warning').classList.add('hidden');
+            }
+        }
+
+        function openNearbyModal() {
+            document.getElementById('modal-nearby-stations').classList.remove('hidden');
+        }
+
+        // Driver Problem Reporting Submission
+        function submitDriverReport() {
+            const desc = document.getElementById('report-issue-desc').value || "Charging session connection failed.";
+            const isHazard = document.getElementById('report-safety-hazard').checked;
+            
+            closeModal('modal-report-problem');
+
+            // Update UI banner on driver kiosk
+            document.getElementById('driver-fault-banner').classList.remove('hidden');
+            document.getElementById('station-status-badge').className = "px-2 py-0.5 text-xs font-mono bg-brand-amber/20 text-brand-amber border border-brand-amber/40 rounded-full flex items-center gap-1";
+            document.getElementById('station-status-badge').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-brand-amber animate-pulse"></span> FAULT REPORTED`;
+
+            if (isWorkingHours) {
+                showToast(isHazard ? 'URGENT SAFETY HAZARD FLAG SENT to Technician!' : 'Report queued! Technician notified for shift inspection.');
+            } else {
+                showToast('After-hours report logged into queue for next shift inspection.', true);
+            }
+
+            // Show nearby modal after reporting
+            setTimeout(() => {
+                openNearbyModal();
+            }, 600);
+        }
+
+        // Technician Working Hours Simulator
+        function setSystemHours(mode) {
+            const btnWork = document.getElementById('btn-hours-working');
+            const btnOut = document.getElementById('btn-hours-outside');
+            const badge = document.getElementById('tech-shift-badge');
+
+            if (mode === 'working') {
+                isWorkingHours = true;
+                btnWork.className = "px-3 py-1.5 rounded-lg bg-brand-amber text-slate-950 font-bold border border-brand-amber";
+                btnOut.className = "px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-brand-border";
+                badge.className = "px-2.5 py-0.5 rounded-full text-xs font-mono bg-brand-amber/20 text-brand-amber border border-brand-amber/40";
+                badge.innerText = "On Duty Shift • Working Hours";
+                showToast("System set to Working Hours. New reports trigger instant technician notification.");
+            } else {
+                isWorkingHours = false;
+                btnOut.className = "px-3 py-1.5 rounded-lg bg-brand-amber text-slate-950 font-bold border border-brand-amber";
+                btnWork.className = "px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-brand-border";
+                badge.className = "px-2.5 py-0.5 rounded-full text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700";
+                badge.innerText = "After Hours (Midnight Shift)";
+                showToast("System set to After-Hours. Driver reports queued for next morning shift.", true);
+            }
+        }
+
+        // Staff Authentication & Maintenance Mode Toggle
+        function toggleStaffAuth() {
+            const pill = document.getElementById('staff-auth-pill');
+            const btnLabel = document.getElementById('auth-btn-label');
+            const lockBox = document.getElementById('maint-mode-lock-box');
+            const controlsPanel = document.getElementById('maint-controls-panel');
+            const modeBadge = document.getElementById('maintenance-mode-status-badge');
+
+            if (!isStaffAuthenticated) {
+                isStaffAuthenticated = true;
+                pill.className = "glass-card px-3 py-1.5 rounded-xl border border-brand-green/50 text-xs font-mono text-brand-green flex items-center gap-2";
+                pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-brand-green"></span> Authenticated: Technician Staff`;
+                btnLabel.innerText = "Lock Staff Auth";
+
+                lockBox.classList.add('hidden');
+                controlsPanel.classList.remove('hidden');
+
+                modeBadge.className = "px-3 py-1 rounded-full text-xs font-mono bg-brand-amber/20 text-brand-amber border border-brand-amber/50 flex items-center gap-1.5";
+                modeBadge.innerHTML = `<i class="fa-solid fa-screwdriver-wrench"></i> Mode: MAINTENANCE MODE ACTIVE`;
+
+                showToast("Staff Card Authenticated! Maintenance Mode engaged for Station #104.");
+            } else {
+                isStaffAuthenticated = false;
+                pill.className = "glass-card px-3 py-1.5 rounded-xl border border-slate-700 text-xs font-mono text-slate-400 flex items-center gap-2";
+                pill.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> Staff Unauthenticated`;
+                btnLabel.innerText = "Tap Staff Card";
+
+                lockBox.classList.remove('hidden');
+                controlsPanel.classList.add('hidden');
+
+                modeBadge.className = "px-3 py-1 rounded-full text-xs font-mono bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1.5";
+                modeBadge.innerHTML = `<i class="fa-solid fa-lock text-xs"></i> Mode: Station Active (Normal)`;
+
+                showToast("Staff Card logged out.");
+            }
+        }
+
+        // Ticket Selection
+        function selectTicket(ticketId) {
+            currentSelectedTicket = ticketId;
+            document.querySelectorAll('.ticket-card').forEach(c => c.classList.remove('border-2', 'border-brand-amber', 'bg-brand-amber/10'));
+            
+            const card = document.getElementById('ticket-card-' + ticketId);
+            if (card) {
+                card.classList.add('border-2', 'border-brand-amber', 'bg-brand-amber/10');
+            }
+
+            if (ticketId === '104') {
+                document.getElementById('detail-station-title').innerText = "Inspection: Station #104 (Central CBD Hub)";
+                document.getElementById('detail-driver-desc').innerText = '"Session failed at pre-charge handshake. High temp alert on screen."';
+                document.getElementById('detail-error-log').innerText = "ERR_CC1_VOLTAGE_FLUX (Code 0x4B) • Thermocouple temp spike 62°C.";
+            } else if (ticketId === '102') {
+                document.getElementById('detail-station-title').innerText = "Inspection: Station #102 (West Wing)";
+                document.getElementById('detail-driver-desc').innerText = '"Connector latch did not click into vehicle inlet properly."';
+                document.getElementById('detail-error-log').innerText = "WARN_LATCH_SOLENOID_TIMEOUT • Mechanical obstruction detected.";
+            }
+        }
+
+        // Diagnostic Tests
+        function runDiagnostics(step) {
+            if (step === 'interlock') {
+                document.getElementById('diag-res-1').innerHTML = `<span class="text-brand-green font-bold"><i class="fa-solid fa-check"></i> Interlock PASSED</span>`;
+                showToast("High Voltage Safety Interlock Test: Normal Continuity");
+            } else if (step === 'cable') {
+                document.getElementById('diag-res-2').innerHTML = `<span class="text-brand-green font-bold"><i class="fa-solid fa-check"></i> Signal 12V OK</span>`;
+                showToast("CP/PP Cable Pilot Signal Frequency Verified");
+            } else if (step === 'charging') {
+                document.getElementById('diag-res-3').innerHTML = `<span class="text-brand-green font-bold"><i class="fa-solid fa-check"></i> Test Load 10kW OK</span>`;
+                showToast("Test Charge Session Executed: Dummy Load Accepted Power");
+            }
+        }
+
+        function toggleOutcomeView(val) {
+            if (val === 'unreproducible') {
+                showToast("Note: Recording as non-reproducible will retain ticket history for tracking intermittent faults.", true);
+            }
+        }
+
+        function recordFindingsOnly() {
+            showToast("Findings logged into maintenance history. Ticket kept open for continuous monitoring.", true);
+        }
+
+        function completeMaintenance() {
+            // Restore station to Available status
+            document.getElementById('driver-fault-banner').classList.add('hidden');
+            document.getElementById('station-status-badge').className = "px-2 py-0.5 text-xs font-mono bg-brand-green/10 text-brand-green border border-brand-green/30 rounded-full flex items-center gap-1";
+            document.getElementById('station-status-badge').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-brand-green animate-ping"></span> ONLINE`;
+
+            // Remove ticket from active queue
+            const activeCard = document.getElementById('ticket-card-' + currentSelectedTicket);
+            if (activeCard) {
+                activeCard.classList.add('opacity-40', 'line-through');
+            }
+
+            document.getElementById('queue-count-badge').innerText = "1 Active";
+
+            // Reset maintenance mode lock
+            if (isStaffAuthenticated) {
+                toggleStaffAuth();
+            }
+
+            showToast("Station restored safely to AVAILABLE status! Public session enabled.");
+            switchTab('tab-public');
+        }
+
+        // Admin Sub-Tab Switching (Financial vs Tariff)
+        function switchAdminSubTab(subTabId) {
+            document.getElementById('subtab-financial').classList.add('hidden');
+            document.getElementById('subtab-tariff').classList.add('hidden');
+            document.getElementById(subTabId).classList.remove('hidden');
+
+            const btnFin = document.getElementById('subtab-btn-financial');
+            const btnTariff = document.getElementById('subtab-btn-tariff');
+
+            if (subTabId === 'subtab-financial') {
+                btnFin.className = "px-4 py-2 rounded-lg bg-brand-purple text-white font-bold shadow-md transition";
+                btnTariff.className = "px-4 py-2 rounded-lg text-slate-400 hover:text-white transition";
+            } else {
+                btnTariff.className = "px-4 py-2 rounded-lg bg-brand-purple text-white font-bold shadow-md transition";
+                btnFin.className = "px-4 py-2 rounded-lg text-slate-400 hover:text-white transition";
+            }
+        }
+
+        // Scenario 1 Logic (Express Charge)
         function selectConnector(element, plugName) {
-            // Reset all connector cards to inactive/gray state
             document.querySelectorAll('.connector-card').forEach(card => {
                 card.classList.remove('border-brand-cyan/80', 'bg-brand-cyan/10');
                 card.classList.add('border-brand-border');
                 
-                // Hide checkmark icon
                 const checkIcon = card.querySelector('.check-icon');
                 if (checkIcon) checkIcon.classList.add('hidden');
 
-                // Reset icon background & text color to slate
                 const iconWrapper = card.querySelector('.icon-wrapper');
                 if (iconWrapper) {
                     iconWrapper.classList.remove('bg-brand-cyan/20', 'text-brand-cyan');
                     iconWrapper.classList.add('bg-slate-800', 'text-slate-400');
                 }
 
-                // Reset title text to gray
                 const cardTitle = card.querySelector('.card-title');
                 if (cardTitle) {
                     cardTitle.classList.remove('text-white');
                     cardTitle.classList.add('text-slate-400');
                 }
 
-                // Reset subtitle text to gray
                 const cardSub = card.querySelector('.card-sub');
                 if (cardSub) {
                     cardSub.classList.remove('text-brand-cyan');
                     cardSub.classList.add('text-slate-400');
                 }
 
-                // Reset description text to gray
                 const cardDesc = card.querySelector('.card-desc');
                 if (cardDesc) {
-                    cardDesc.classList.remove('text-brand-cyan');
+                    cardDesc.classList.remove('text-slate-400');
                     cardDesc.classList.add('text-slate-400');
                 }
             });
 
-            // Highlight selected connector card container
             element.classList.remove('border-brand-border');
             element.classList.add('border-brand-cyan/80', 'bg-brand-cyan/10');
 
-            // Show checkmark icon
             const activeCheck = element.querySelector('.check-icon');
             if (activeCheck) activeCheck.classList.remove('hidden');
 
-            // Highlight icon container in neon cyan
             const activeIconWrapper = element.querySelector('.icon-wrapper');
             if (activeIconWrapper) {
                 activeIconWrapper.classList.remove('bg-slate-800', 'text-slate-400');
                 activeIconWrapper.classList.add('bg-brand-cyan/20', 'text-brand-cyan');
             }
 
-            // Highlight Title in White
             const activeTitle = element.querySelector('.card-title');
             if (activeTitle) {
                 activeTitle.classList.remove('text-slate-400');
                 activeTitle.classList.add('text-white');
             }
 
-            // Highlight Subtitle in Neon Cyan
             const activeSub = element.querySelector('.card-sub');
             if (activeSub) {
                 activeSub.classList.remove('text-slate-400');
                 activeSub.classList.add('text-brand-cyan');
             }
 
-            // Highlight Description in Neon Cyan
             const activeDesc = element.querySelector('.card-desc');
             if (activeDesc) {
                 activeDesc.classList.remove('text-slate-400');
                 activeDesc.classList.add('text-brand-cyan');
             }
 
-            // Update label text at the bottom panel
             document.getElementById('selected-plug-name').innerText = plugName;
         }
 
@@ -680,7 +1478,11 @@
             goToS1Step(3);
         }
 
-        // Scenario 2 Logic
+        function resetExpressCharge() {
+            goToS1Step(1);
+        }
+
+        // Scenario 2 Logic (Voucher)
         function keypadInput(val) {
             const display = document.getElementById('voucher-input-display');
             if (display.innerText === 'DRIVE15') display.innerText = '';
@@ -694,9 +1496,9 @@
         function applyVoucher() {
             const code = document.getElementById('voucher-input-display').innerText;
             if (code === 'DRIVE15') {
-                alert('Voucher DRIVE15 Applied! $5.25 Discount Granted.');
+                showToast('Voucher DRIVE15 Applied! $5.25 Discount Granted.');
             } else {
-                alert('Voucher Code Applied!');
+                showToast('Voucher Code Applied!');
             }
         }
 
@@ -714,13 +1516,9 @@
             switchTab('tab-active');
         }
 
-        // Scenario 3 Logic
+        // Early Stop
         function openStopModal() {
             document.getElementById('modal-stop-auth').classList.remove('hidden');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
         }
 
         function confirmEarlyStop() {
@@ -731,6 +1529,31 @@
         function sendSmsReceipt() {
             const phone = document.getElementById('sms-phone').value;
             showToast('Receipt successfully sent via SMS to ' + phone + '!');
+        }
+
+        // Admin Dashboard Logic
+        function updateFinancialReport() {
+            const start = document.getElementById('admin-date-start').value;
+            const end = document.getElementById('admin-date-end').value;
+            showToast(`Financial report recalculated for interval ${start} to ${end}`);
+        }
+
+        function simulateImpact() {
+            const newRate = parseFloat(document.getElementById('tariff-rate-input').value) || 0.40;
+            const diff = (newRate - 0.35) * 28400;
+            const formatted = diff >= 0 ? `+$${diff.toFixed(2)} / week` : `-$${Math.abs(diff).toFixed(2)} / week`;
+            document.getElementById('impact-gain-text').innerText = formatted;
+            showToast(`Simulated Impact: New rate $${newRate.toFixed(2)} projected shift ${formatted}`);
+        }
+
+        function publishToNetwork() {
+            const newRate = parseFloat(document.getElementById('tariff-rate-input').value) || 0.40;
+            document.getElementById('public-peak-rate-display').innerText = `$${newRate.toFixed(2)} / kWh`;
+            showToast(`Tariff updates published live across EVC Stations #101 to #104!`);
+        }
+
+        function exportCSV() {
+            showToast('CSV Export generated for Stations #101 - #104.');
         }
     </script>
 </body>
